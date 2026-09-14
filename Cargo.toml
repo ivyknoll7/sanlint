@@ -1,0 +1,8 @@
+[package]
+name = "sanlint"
+version = "0.1.0"
+edition = "2021"
+description = "Strict validator for SAN chess move notation"
+license = "MIT"
+
+[dependencies]
