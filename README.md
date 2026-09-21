@@ -8,10 +8,14 @@ Every PGN viewer and every hand-written game log tends to accumulate small
 notation mistakes: a missing capture file (`xd5` instead of `exd5`), a pawn
 push to the last rank with no promotion piece, castling written with a
 zero instead of a capital O, two check symbols stuck on the end of a move.
-Most parsers either silently accept this or crash on it. `sanlint` is
-narrower than a full PGN parser or a chess engine: it does not know about
-board positions, so it cannot tell you whether a move is legal in context.
-What it does check is everything the SAN grammar fixes on its own.
+Most parsers either silently accept this or crash on it. `sanlint` also
+tracks a board through the game, starting from the standard position, so it
+can catch a move that no piece on the board could actually make: a knight
+"jumping" to a square it doesn't attack, a bishop moving through a piece in
+its way, a capture aimed at an empty square. It does not go as far as a
+full chess engine: it does not check whether a move would leave the
+mover's own king in check, since that requires generating the opponent's
+replies too.
 
 ## Usage
 
@@ -27,7 +31,8 @@ $ sanlint game.pgn
 line 4: 'Nxe5+#' - more than one check/mate symbol
 line 6: 'xd5' - pawn capture 'xd5' is missing its origin file
 line 9: 'e8' - pawn move 'e8' reaches the last rank but has no promotion
-checked 41 moves, 3 errors
+line 12: 'Nd5' - no knight can reach d5 from the current position
+checked 41 moves, 4 errors
 ```
 
 Exit status is 0 if every move is valid, 1 otherwise.
@@ -62,8 +67,9 @@ Pass `--lenient` to accept those too:
 
 `--lenient` only widens what counts as valid syntax. It never suppresses
 an error that would be reported anyway (a missing promotion is still a
-missing promotion), and it never checks board legality, since that is out
-of scope for this tool either way.
+missing promotion), and it has no effect on board tracking: a move either
+has a piece that can make it or it doesn't, regardless of how its notation
+was spelled.
 
 ## Building
 
@@ -75,7 +81,10 @@ cargo build --release
 
 ## What this does not do (yet)
 
-`sanlint` has no board model, so it cannot check whether a move is legal
-in the position it's played in, whether a disambiguator is actually
-necessary, or whether a `+`/`#` matches the real result of the move. It
-checks notation shape, not chess.
+The board `sanlint` tracks is only as good as the moves it's been given:
+if a move fails the syntax check it isn't applied, so anything after it is
+checked against a stale position. `sanlint` also does not check whether a
+move leaves the mover's own king in check, whether a disambiguator is
+actually necessary, or whether a `+`/`#` matches the real result of the
+move. It assumes every game starts from the standard position; there is no
+way yet to point it at a different starting FEN.

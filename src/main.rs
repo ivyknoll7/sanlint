@@ -1,3 +1,4 @@
+mod board;
 mod pgn;
 mod san;
 
@@ -49,6 +50,7 @@ fn main() -> ExitCode {
     let tokens = pgn::tokenize(&input);
     let mut checked: u32 = 0;
     let mut errors: u32 = 0;
+    let mut board = board::Board::start_position();
 
     for token in &tokens {
         let word = pgn::strip_move_number(&token.text);
@@ -56,9 +58,17 @@ fn main() -> ExitCode {
             continue;
         }
         checked += 1;
-        if let Err(e) = san::validate(word, lenient) {
-            errors += 1;
-            eprintln!("line {}: '{}' - {}", token.line, word, e);
+        match san::parse(word, lenient) {
+            Err(e) => {
+                errors += 1;
+                eprintln!("line {}: '{}' - {}", token.line, word, e);
+            }
+            Ok(mv) => {
+                if let Err(e) = board.apply(&mv) {
+                    errors += 1;
+                    eprintln!("line {}: '{}' - {}", token.line, word, e);
+                }
+            }
         }
     }
 
